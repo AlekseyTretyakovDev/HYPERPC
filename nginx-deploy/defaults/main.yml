@@ -1,0 +1,18 @@
+---
+# Default variables for nginx-deploy role
+nginx_user: www-data
+nginx_config_dir: /etc/nginx
+nginx_sites_available: "{{ nginx_config_dir }}/sites-available"
+nginx_sites_enabled: "{{ nginx_config_dir }}/sites-enabled"
+nginx_backup_dir: /etc/nginx/backups
+
+# Application settings
+app_name: HYPERPC
+app_port: 3000
+app_server_name: localhost
+
+# Nginx configuration
+nginx_worker_processes: auto
+nginx_worker_connections: 1024
+nginx_keepalive_timeout: 65
+nginx_client_max_body_size: 10m

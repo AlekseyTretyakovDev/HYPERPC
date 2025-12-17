@@ -1,0 +1,77 @@
+---
+- name: Ensure Nginx is installed
+  apt:
+    name: nginx
+    state: present
+    update_cache: yes
+  when: ansible_os_family == 'Debian'
+  
+- name: Ensure Nginx is installed (RHEL/CentOS)
+  yum:
+    name: nginx
+    state: present
+  when: ansible_os_family == 'RedHat'
+
+- name: Create backup directory
+  file:
+    path: "{{ nginx_backup_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Backup existing nginx config if exists
+  command:
+    cmd: cp "{{ nginx_sites_available }}/{{ app_name }}" "{{ nginx_backup_dir }}/{{ app_name }}.bak.{{ ansible_date_time.iso8601 }}"
+    creates: "{{ nginx_backup_dir }}/{{ app_name }}.bak.{{ ansible_date_time.iso8601 }}"
+  register: backup_result
+  changed_when: backup_result.rc == 0
+  failed_when: backup_result.rc != 0 and "No such file or directory" not in backup_result.stderr
+  ignore_errors: yes
+
+- name: Create site-available directory if not exists
+  file:
+    path: "{{ nginx_sites_available }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  when: not nginx_sites_available is directory
+
+- name: Deploy Nginx configuration template
+  template:
+    src: nginx-proxy.conf.j2
+    dest: "{{ nginx_sites_available }}/{{ app_name }}"
+    owner: root
+    group: root
+    mode: '0644'
+    backup: yes
+  register: nginx_config
+  notify:
+    - Test nginx configuration
+    - Reload nginx
+
+- name: Create symlink in sites-enabled
+  file:
+    src: "{{ nginx_sites_available }}/{{ app_name }}"
+    dest: "{{ nginx_sites_enabled }}/{{ app_name }}"
+    state: link
+    force: yes
+  notify:
+    - Test nginx configuration
+    - Reload nginx
+
+- name: Remove default nginx site (Debian/Ubuntu)
+  file:
+    path: "{{ nginx_sites_enabled }}/default"
+    state: absent
+  when: ansible_os_family == 'Debian'
+  notify:
+    - Test nginx configuration
+    - Reload nginx
+
+- name: Ensure nginx is running and enabled
+  service:
+    name: nginx
+    state: started
+    enabled: yes

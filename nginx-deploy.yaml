@@ -1,0 +1,11 @@
+---
+- name: Deploy Nginx proxy
+  hosts: webservers
+  become: yes
+  
+  roles:
+    - role: nginx-deploy
+      vars:
+        app_name: "HYPERPC"
+        app_port: 3000
+        app_server_name: "heperpc.test.com"

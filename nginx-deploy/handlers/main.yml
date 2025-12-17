@@ -1,0 +1,12 @@
+---
+- name: Test nginx configuration
+  command: nginx -t
+  register: nginx_test_result
+  changed_when: false
+  failed_when: nginx_test_result.rc != 0
+
+- name: Reload nginx
+  service:
+    name: nginx
+    state: reloaded
+  when: nginx_test_result is defined and nginx_test_result.rc == 0
